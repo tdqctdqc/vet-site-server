@@ -5,14 +5,32 @@ const provinces = require('../provinces');
 const nameCheck = /^[A-Za-z ]{2,255}$/;
 const cityCheck = /^[A-Za-z ]{2,255}$/;
 
-vetRouter.get('/', (req, res) => {
-})
-vetRouter.post('/testForm', (req, res) => {
-    console.log(req.body);    
+vetRouter.get('/:id', async (req, res) => {
+    const id = req.params.id;
+    let sql = `SELECT * FROM veterinarians WHERE id=${id}`;
+    const connection = getConnection();
+    let query = connection.query(sql, (err, result) => {
+        connection.end();
+        if(err) throw err;
+        res.json(result);
+    });
+
 });
 
 
-vetRouter.post('/addVet', async (req, res) => {
+vetRouter.post('/addVet', verifyAdd, async (req, res) => {
+    const data = req.body;
+
+    let sql = 'INSERT INTO veterinarians SET ?';
+    const connection = getConnection();
+    let query = connection.query(sql, data, (err, result) => {
+        connection.end();
+        if(err) throw err;
+        res.json({response: 'got it'});
+    });
+});
+
+function verifyAdd(req, res, next) {
     const data = req.body;
     if(!data.name || !nameCheck.test(data.name)) {
         throw 'Submitted name is not valid.';
@@ -24,16 +42,6 @@ vetRouter.post('/addVet', async (req, res) => {
         throw 'Submitted province is not valid.';
     }
 
-    let sql = 'INSERT INTO veterinarians SET ?';
-    const connection = getConnection();
-    let query = connection.query(sql, data, (err, result) => {
-        connection.end();
-        if(err) throw err;
-        res.json({response: 'got it'});
-    });
-});
-
-function verifyAdd() {
-    
+    next();
 }
 module.exports = vetRouter;
