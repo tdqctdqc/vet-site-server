@@ -9,7 +9,9 @@ vetRouter.get('/', async (req, res) => {
     let sql = 'SELECT * FROM veterinarians';
     const connection = getConnection();
     let query = connection.query(sql, (err, result) => {
-
+        connection.end();
+        if(err) throw(err);
+        res.json(result);
     });
 })
 vetRouter.post('/:vetId/clients/:clientId/patients', verifyAddPatient, async (req, res) => {
@@ -22,7 +24,6 @@ vetRouter.post('/:vetId/clients/:clientId/patients', verifyAddPatient, async (re
     let query = connection.query(sql, data, (err, result) => {
         connection.end();
         if(err) throw err;
-        res.json({response: 'got it'});
     });
 });
 
@@ -62,25 +63,24 @@ vetRouter.get('/:id/clients', async (req, res) => {
 
 vetRouter.get('/:id/patients', async (req, res) => {
     const id = req.params.id;
-    let clientsSql = `SELECT id FROM clients WHERE veterinarian=${id}`;
+    let clientsSql = `SELECT id, name FROM clients WHERE veterinarian=${id}`;
     const connection1 = getConnection();
     let clientsQuery = connection1.query(clientsSql, (err, result) => {
         connection1.end();
         if(err) throw err;
+        console.log(result);
         const clientIds = result.map(r => r.id);
-        console.log(clientIds);
-        patientsCallback(clientIds);
+        //else need to send message that no clients, display on client end
+        if(clientIds.length > 0) patientsCallback(clientIds);
         // res.json(result);
     });
     //bad, use mysql2 for promise-ifying queries
     function patientsCallback(clientIds) {
-        //bad syntax here
-        let patientsSql = `SELECT * FROM patients WHERE client IN (${clientIds})`;
+        let patientsSql = `SELECT patients.id, patients.name, patients.client, patients.species, patients.history, clients.name AS clientName FROM patients LEFT JOIN clients ON clients.id = patients.client WHERE client IN (${clientIds})`;
         const connection2 = getConnection();
         let patientsQuery = connection2.query(patientsSql, (err, result) => {
             connection2.end();
             if(err) throw err;
-            console.log(result);
             res.json(result);
         });
     }
